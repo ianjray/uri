@@ -1,0 +1,111 @@
+.POSIX:
+.SUFFIXES:
+.SUFFIXES: .c .o .uto
+
+VERSION    = 1.0.0
+
+CC         = @CC@
+CCOV       = gcov
+CFLAGS     = @CFLAGS@
+CFLAGS_COV = @CFLAGS_COV@
+CFLAGS_SAN = @CFLAGS_SAN@
+INCLUDEDIR = @PREFIX@/include
+LD         = @LD@
+LIBDIR     = @PREFIX@/lib
+PREFIX     = @PREFIX@
+
+.PHONY: all
+all: test_rfc_charset
+all: test_text_validate
+all: test_percent
+all: uri.coverage
+all: test_attack
+all: test_construct
+all: test_extra
+all: test_readme
+
+liburi.a: internal/percent.o internal/rfc_charset.o internal/str.o internal/text_validate.o uri.o
+	$(LD) -r $^ -o $@
+
+.c.o:
+	$(CC) $(CFLAGS) -I. -Iinternal -c $^ -o $@
+
+.c.uto:
+	$(CC) $(CFLAGS) $(CFLAGS_COV) $(CFLAGS_SAN) -I. -Iinternal -c $^ -o $@
+
+test_attack: tests/test_attack.c tests/support.o liburi.a
+	$(CC) $(CFLAGS) $(CFLAGS_SAN) -I. $^ -o $@
+	./$@
+
+test_construct: tests/test_construct.c tests/support.o liburi.a
+	$(CC) $(CFLAGS) $(CFLAGS_SAN) -I. $^ -o $@
+	./$@
+
+test_extra: tests/test_extra.c tests/support.o liburi.a
+	$(CC) $(CFLAGS) $(CFLAGS_SAN) -I. $^ -o $@
+	./$@
+
+test_percent: tests/test_percent.c tests/support.o internal/percent.o internal/percent.o internal/rfc_charset.o internal/str.o internal/text_validate.o uri.o
+	$(CC) $(CFLAGS) $(CFLAGS_SAN) -I. -Iinternal $^ -o $@
+	./$@
+
+test_readme: README.md liburi.a
+	awk '/```c/{ C=1; next } /```/{ C=0 } C' README.md | sed -e 's#liburi/##' > test_readme.c
+	$(CC) $(CFLAGS) $(CFLAGS_SAN) -I. test_readme.c liburi.a -o $@
+	./$@
+
+test_rfc_charset: tests/test_rfc_charset.c internal/rfc_charset.c
+	$(CC) $(CFLAGS) $(CFLAGS_SAN) -I. -Iinternal $^ -o $@
+	./$@
+
+test_text_validate: tests/test_text_validate.c internal/text_validate.c
+	$(CC) $(CFLAGS) $(CFLAGS_SAN) -I. -Iinternal $^ -o $@
+	./$@
+
+uri.coverage: internal/percent.uto internal/rfc_charset.uto internal/str.uto internal/text_validate.uto uri.uto tests/test_uri.uto tests/memory_shim.uto tests/support.uto
+	$(CC) $(CFLAGS) $(CFLAGS_COV) $(CFLAGS_SAN) $^ -o $@
+	./$@
+	$(CCOV) uri.c
+	! grep "#####" uri.c.gcov |grep -ve "// UNREACHABLE$$"
+
+liburi.pc:
+	( echo 'Name: liburi' ;\
+	echo 'Version: $(VERSION)' ;\
+	echo 'Description: URI normalizer library' ;\
+	echo 'prefix=$(PREFIX)' ;\
+	echo 'exec_prefix=$${prefix}' ;\
+	echo 'includedir=$${prefix}/include' ;\
+	echo 'libdir=$${prefix}/lib' ;\
+	echo 'Cflags: -I$${includedir}' ;\
+	echo 'Libs: -L$${libdir} -luri' ) > $@
+
+.PHONY: install
+install: uri.h liburi.a liburi.pc
+	mkdir -p $(INCLUDEDIR)/liburi
+	mkdir -p $(LIBDIR)/pkgconfig
+	install -m644 uri.h $(INCLUDEDIR)/liburi/uri.h
+	install -m644 liburi.a $(LIBDIR)/liburi.a
+	install -m644 liburi.pc $(LIBDIR)/pkgconfig/liburi.pc
+
+.PHONY: uninstall
+uninstall:
+	rm -f $(INCLUDEDIR)/liburi/uri.h
+	rm -f $(LIBDIR)/liburi.a
+	rm -f $(LIBDIR)/pkgconfig/liburi.pc
+
+.PHONY: clean
+clean:
+	rm -f *.o **/*.o *.uto **/*.uto *.gc?? **/*.gc?? *.coverage
+	rm -f liburi.a liburi.pc
+	rm -rf test_attack*
+	rm -rf test_construct*
+	rm -rf test_coverage*
+	rm -rf test_extra*
+	rm -rf test_percent*
+	rm -rf test_readme*
+	rm -rf test_rfc_charset*
+	rm -rf test_text_validate*
+
+.PHONY: distclean
+distclean: clean
+	rm -f Makefile config.status
