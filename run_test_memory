@@ -1,0 +1,13 @@
+#!/bin/sh
+
+die() {
+	echo "failed"
+	exit 1
+}
+
+TOTAL="$(./test_memory | grep "X_ALLOC_COUNT" | cut -d: -f2)"
+echo "${TOTAL} allocations"
+
+for N in $(seq 1 "${TOTAL}"); do
+	X_ALLOC_CAP="${N}" ./test_memory || die
+done
