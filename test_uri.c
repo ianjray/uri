@@ -224,6 +224,8 @@ int main(void)
         free(str);
         uri_delete(u);
 
+        assert(-EINVAL == uri_new("//%Z0", &u));
+
         assert(NULL == uri_scheme(NULL));
         assert(NULL == uri_host(NULL));
         assert(NULL == uri_userinfo(NULL));

@@ -15,7 +15,7 @@ static int asciihex_to_int(int c)
         return 0x0A + c - 'A';
     }
 
-    return 0; // UNREACHABLE
+    return 0;
 }
 
 bool normalize_percent_encodings(char *str)
