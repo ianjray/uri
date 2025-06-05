@@ -394,6 +394,7 @@ const char *uri_fragment(const struct uri *u)
 
 int uri_scheme_set(struct uri *u, const char *str)
 {
+    char *tmp = NULL;
     int r;
 
     if (!u) {
@@ -405,25 +406,24 @@ int uri_scheme_set(struct uri *u, const char *str)
         return r;
     }
 
-    free(u->scheme);
-    u->scheme = NULL;
-    if (str) {
-        u->scheme = strdup(str);
-        if (!u->scheme) {
-            return -ENOMEM; // UNREACHABLE
-        } // UNREACHABLE
+    tmp = safe_strdup(str);
+    if (str && !tmp) {
+        return -ENOMEM; // UNREACHABLE
     }
 
     // §3.1
     // An implementation should accept uppercase letters as equivalent to lowercase ... for the sake of robustness but should only produce lowercase scheme names for consistency.
 
+    free(u->scheme);
+    u->scheme = tmp;
     str_lowercase(u->scheme);
-
     return 0;
 }
 
 int uri_port_set(struct uri *u, const char *str)
 {
+    char *tmp = NULL;
+
     if (!u) {
         return -EFAULT;
     }
@@ -432,28 +432,26 @@ int uri_port_set(struct uri *u, const char *str)
         return -EINVAL;
     }
 
-    free(u->authority.port);
-    u->authority.port = NULL;
     if (str && *str) {
-        u->authority.port = strdup(str);
-        if (!u->authority.port) {
+        tmp = strdup(str);
+        if (!tmp) {
             return -ENOMEM; // UNREACHABLE
-        } // UNREACHABLE
+        }
     }
 
+    free(u->authority.port);
+    u->authority.port = tmp;
     return 0;
 }
 
 int uri_path_set(struct uri *u, const char *path)
 {
-    char *eos;
-    char *tmp;
-
     if (!u) {
         return -EFAULT;
     }
 
     if (!path || !*path) {
+        // No path.
         free(u->unresolved_path);
         u->unresolved_path = NULL;
 
@@ -468,69 +466,74 @@ int uri_path_set(struct uri *u, const char *path)
     }
 
     if (*path == '/') {
-        free(u->unresolved_path);
-        u->unresolved_path = strdup(path);
-
-    } else {
-        if (u->unresolved_path) {
-            eos = strrchr(u->unresolved_path, '/');
-            if (eos) {
-                eos++;
-            } else {
-                eos = u->unresolved_path;
-            }
-        } else {
-            eos = u->unresolved_path;
+        // Absolute.
+        char *tmp = strdup(path);
+        if (!tmp) {
+            return -ENOMEM; // UNREACHABLE
         }
-
-        tmp = (char *)malloc((size_t)(eos - u->unresolved_path) + strlen(path) + 1 /*NUL*/);
-        if (u->unresolved_path) {
-            memcpy(tmp, u->unresolved_path, (size_t)(eos - u->unresolved_path));
-        }
-        tmp[(size_t)(eos - u->unresolved_path)] = 0;
-        strcat(tmp, path);
 
         free(u->unresolved_path);
         u->unresolved_path = tmp;
+
+    } else {
+        // Relative.
+        size_t len = 0;
+        char *tmp;
+
+        if (u->unresolved_path) {
+            char *eos = strrchr(u->unresolved_path, '/');
+            if (eos) {
+                eos++;
+                len = eos - u->unresolved_path;
+            }
+        }
+
+        tmp = realloc(u->unresolved_path, len + strlen(path) + 1 /*NUL*/);
+        if (!tmp) {
+            return -ENOMEM; // UNREACHABLE
+        }
+
+        u->unresolved_path = tmp;
+        strcpy(u->unresolved_path + len, path);
     }
 
     resolve_path(u);
-    return 0;
+    return 0; //FIXME
 }
 
 int uri_query_set(struct uri *u, const char *str)
 {
+    char *tmp = NULL;
+
     if (!u) {
         return -EFAULT;
     }
 
-    free(u->query);
-    u->query = NULL;
-    if (str) {
-        u->query = strdup(str);
-        if (!u->query) {
-            return -ENOMEM; // UNREACHABLE
-        } // UNREACHABLE
+    tmp = safe_strdup(str);
+    if (str && !tmp) {
+        return -ENOMEM; // UNREACHABLE
     }
 
+    free(u->query);
+    u->query = tmp;
     return 0;
 }
 
 int uri_fragment_set(struct uri *u, const char *str)
 {
+    char *tmp = NULL;
+
     if (!u) {
         return -EFAULT;
     }
 
-    free(u->fragment);
-    u->fragment = NULL;
-    if (str) {
-        u->fragment = strdup(str);
-        if (!u->fragment) {
-            return -ENOMEM; // UNREACHABLE
-        } // UNREACHABLE
+    tmp = safe_strdup(str);
+    if (str && !tmp) {
+        return -ENOMEM; // UNREACHABLE
     }
 
+    free(u->fragment);
+    u->fragment = tmp;
     return 0;
 }
 
