@@ -12,7 +12,6 @@
 struct uri {
     char *scheme;
     struct {
-        bool has;
         char *userinfo;
         char *host;
         char *port;
@@ -146,7 +145,7 @@ int uri_new(const char *str_in, struct uri **tokens_out)
     // §3.2
     // The authority component is preceded by a double slash ("//") and is terminated by the next slash ("/"), question mark ("?"), or number sign ("#") character, or by the end of the URI.
 
-    if ((u->authority.has = str_prefix_delete(str, "//"))) {
+    if (str_prefix_delete(str, "//")) {
 
         // §3.3
         // If a URI contains an authority component, then the path component must either be empty or begin with a slash ("/") character.
@@ -249,7 +248,6 @@ int uri_dup(const struct uri *u, struct uri **dst)
     copy = (struct uri *)calloc(1, sizeof(*u));
     if (copy) {
         copy->scheme             = safe_strdup(u->scheme);
-        copy->authority.has      = u->authority.has;
         copy->authority.userinfo = safe_strdup(u->authority.userinfo);
         copy->authority.host     = safe_strdup(u->authority.host);
         copy->authority.port     = safe_strdup(u->authority.port);
@@ -266,6 +264,11 @@ int uri_dup(const struct uri *u, struct uri **dst)
 
     *dst = copy;
     return 0;
+}
+
+static bool has_authority(const struct uri *u)
+{
+    return u->authority.userinfo || u->authority.host || u->authority.port;
 }
 
 int uri_set(struct uri *u, const char *seq)
@@ -287,7 +290,6 @@ int uri_set(struct uri *u, const char *seq)
     if (ingest->scheme) {
         // Absolute.
         SWAP(u, ingest, scheme);
-        u->authority.has = ingest->authority.has;
         SWAP(u, ingest, authority.userinfo);
         SWAP(u, ingest, authority.host);
         SWAP(u, ingest, authority.port);
@@ -298,8 +300,7 @@ int uri_set(struct uri *u, const char *seq)
     } else {
         // Relative.
         // §5.2.2
-        if (ingest->authority.has) {
-            u->authority.has = ingest->authority.has;
+        if (has_authority(ingest)) {
             SWAP(u, ingest, authority.userinfo);
             SWAP(u, ingest, authority.host);
             SWAP(u, ingest, authority.port);
@@ -438,7 +439,6 @@ int uri_port_set(struct uri *u, const char *str)
         if (!u->authority.port) {
             return -ENOMEM; // UNREACHABLE
         } // UNREACHABLE
-        u->authority.has = true;
     }
 
     return 0;
@@ -462,7 +462,7 @@ int uri_path_set(struct uri *u, const char *path)
         return 0;
     }
 
-    if (u->authority.has && (!u->unresolved_path || !*u->unresolved_path) && *path != '/') {
+    if (has_authority(u) && (!u->unresolved_path || !*u->unresolved_path) && *path != '/') {
         // URI has authority, but no path: new path must be absolute.
         return -EINVAL;
     }
@@ -582,7 +582,6 @@ int uri_str(const struct uri *u, char **str_out)
 
     // Make a percent-encoded copy in preparation for joining the components together.
     copy.scheme             = safe_strdup(u->scheme);
-    copy.authority.has      = u->authority.has;
     copy.authority.userinfo = percent_encode(u->authority.userinfo, is_userinfo);
     copy.authority.host     = percent_encode(u->authority.host,     is_host);
     copy.authority.port     = safe_strdup(u->authority.port);
@@ -597,7 +596,7 @@ int uri_str(const struct uri *u, char **str_out)
 
     len += calculate_size(copy.scheme, ":");
 
-    if (copy.authority.has) {
+    if (has_authority(&copy)) {
         len += 2; /* "//" */
     }
 
@@ -620,7 +619,7 @@ int uri_str(const struct uri *u, char **str_out)
         strcat(str, ":");
     }
 
-    if (copy.authority.has) {
+    if (has_authority(&copy)) {
         strcat(str, "//");
 
         if (copy.authority.userinfo) {
@@ -639,7 +638,7 @@ int uri_str(const struct uri *u, char **str_out)
     }
 
     if (copy.path) {
-        if (!copy.authority.has) {
+        if (!has_authority(&copy)) {
             // https://url.spec.whatwg.org/#url-serializing
             if (!strncmp(copy.path, "//", 2)) {
                 // Path looks like an authority.
