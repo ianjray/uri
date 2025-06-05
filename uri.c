@@ -433,6 +433,11 @@ int uri_port_set(struct uri *u, const char *str)
     }
 
     if (str && *str) {
+        if (u->path && u->path[0] != '/') {
+            // Trying to set authority on a relative path.
+            return -EINVAL;
+        }
+
         tmp = strdup(str);
         if (!tmp) {
             return -ENOMEM; // UNREACHABLE

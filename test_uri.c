@@ -249,10 +249,19 @@ int main(void)
         free(str);
         uri_delete(u);
 
-        assert(0 == uri_new("///p", &u));
-        assert(0 == uri_port_set(u, "1"));
-        assert(0 == uri_str(u, &str));
-        assert(!strcmp(str, "//:1/p"));
+        assert(      0 == uri_new("p", &u));
+        assert(      0 == strcmp(uri_path(u), "p"));
+        assert(-EINVAL == uri_port_set(u, "1"));
+
+        assert(      0 == uri_path_set(u, "/p"));
+        assert(      0 == uri_port_set(u, "1"));
+        assert(      0 == uri_str(u, &str));
+        assert(      0 == strcmp(str, "//:1/p"));
+        free(str);
+
+        assert(      0 == uri_port_set(u, NULL));
+        assert(      0 == uri_str(u, &str));
+        assert(      0 == strcmp(str, "/p"));
         free(str);
         uri_delete(u);
 
