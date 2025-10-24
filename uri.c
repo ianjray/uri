@@ -180,11 +180,7 @@ static int impl_ingest(const char *str_in, struct uri **tokens_out)
 
         u->path = str_suffix_detach_inclusive(str, '/');
 
-        if (str && !*str) {
-            // Empty authority.
-            uri_delete(u);
-            return -EINVAL;
-        }
+        // Note the authority may be empty.
 
         // §3.2.3
         // The port subcomponent of authority is designated by an optional port number in decimal following the host and delimited from it by a single colon (":") character.

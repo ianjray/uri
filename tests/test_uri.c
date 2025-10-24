@@ -218,9 +218,24 @@ int main(void)
 
         assert(-EINVAL == uri_new("://host/path", &u));
 
-        assert(-EINVAL == uri_new("//", &u));
-        assert(-EINVAL == uri_new("///path", &u));
-        assert(-EINVAL == uri_new("scheme:///path", &u));
+        assert(      0 == uri_new("//", &u));
+        assert(   NULL == uri_scheme(u));
+        assert(   NULL == uri_userinfo(u));
+        assert(      0 == strcmp(uri_host(u), ""));
+        assert(   NULL == uri_port(u));
+        assert(   NULL == uri_path(u));
+        assert(   NULL == uri_query(u));
+        assert(   NULL == uri_fragment(u));
+        uri_delete(u);
+
+        assert(      0 == uri_new("//host", &u));
+        assert(!strcmp(uri_host(u), "host"));
+        uri_delete(u);
+
+        assert(      0 == uri_new("///path", &u));
+        assert(!strcmp(uri_host(u), ""));
+        assert(!strcmp(uri_path(u), "/path"));
+        uri_delete(u);
 
         assert(-EINVAL == uri_new("//%0z", &u));
         assert(-EINVAL == uri_new("scheme:%%", &u));
