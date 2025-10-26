@@ -20,11 +20,13 @@ struct uri;
 /// @return -EFAULT bad pointer.
 /// @return -EINVAL invalid character or percent-encoding.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller must uri_delete() the returned pointer.
 int uri_new(const char *, struct uri **) PUBLIC;
 
 /// Duplicate URI object.
 /// @return -EFAULT bad pointer.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller must uri_delete() the returned pointer.
 int uri_dup(const struct uri *, struct uri **) PUBLIC;
 
 /// Modify URI object with given string.
@@ -36,6 +38,7 @@ int uri_dup(const struct uri *, struct uri **) PUBLIC;
 /// @return -EFAULT bad pointer.
 /// @return -EINVAL invalid character or percent-encoding.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller retains ownership of the string parameter.
 int uri_set(struct uri *, const char *) PUBLIC;
 
 /// Component interface.
@@ -65,30 +68,37 @@ int uri_set(struct uri *, const char *) PUBLIC;
 
 /// Get scheme.
 /// @return Reference to component (or NULL if not present in URI).
+/// @note Memory ownership: Reference is valid until URI is modified or deleted.
 const char *uri_scheme(const struct uri *) PUBLIC;
 
 /// Get userinfo.
 /// @return Reference to component (or NULL if not present in URI).
+/// @note Memory ownership: Reference is valid until URI is modified or deleted.
 const char *uri_userinfo(const struct uri *) PUBLIC;
 
 /// Get host.
 /// @return Reference to component (or NULL if not present in URI).
+/// @note Memory ownership: Reference is valid until URI is modified or deleted.
 const char *uri_host(const struct uri *) PUBLIC;
 
 /// Get port.
 /// @return Reference to component (or NULL if not present in URI).
+/// @note Memory ownership: Reference is valid until URI is modified or deleted.
 const char *uri_port(const struct uri *) PUBLIC;
 
 /// Get path.
 /// @return Reference to component (or NULL if not present in URI).
+/// @note Memory ownership: Reference is valid until URI is modified or deleted.
 const char *uri_path(const struct uri *) PUBLIC;
 
 /// Get query.
 /// @return Reference to component (or NULL if not present in URI).
+/// @note Memory ownership: Reference is valid until URI is modified or deleted.
 const char *uri_query(const struct uri *) PUBLIC;
 
 /// Get fragment.
 /// @return Reference to component (or NULL if not present in URI).
+/// @note Memory ownership: Reference is valid until URI is modified or deleted.
 const char *uri_fragment(const struct uri *) PUBLIC;
 
 /// Set scheme component.
@@ -96,18 +106,21 @@ const char *uri_fragment(const struct uri *) PUBLIC;
 /// @return -EFAULT bad pointer.
 /// @return -EINVAL invalid character.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller retains ownership of the string parameter.
 int uri_scheme_set(struct uri *, const char *) PUBLIC;
 
 /// Set userinfo component.
 /// @return Zero on success, negative errno otherwise.
 /// @return -EFAULT bad pointer.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller retains ownership of the string parameter.
 int uri_userinfo_set(struct uri *, const char *) PUBLIC;
 
 /// Set host component.
 /// @return Zero on success, negative errno otherwise.
 /// @return -EFAULT bad pointer.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller retains ownership of the string parameter.
 int uri_host_set(struct uri *, const char *) PUBLIC;
 
 /// Set port component.
@@ -115,6 +128,7 @@ int uri_host_set(struct uri *, const char *) PUBLIC;
 /// @return -EFAULT bad pointer.
 /// @return -EINVAL invalid character.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller retains ownership of the string parameter.
 int uri_port_set(struct uri *, const char *) PUBLIC;
 
 /// Set path component.
@@ -124,18 +138,21 @@ int uri_port_set(struct uri *, const char *) PUBLIC;
 /// @return -EFAULT bad pointer.
 /// @return -EINVAL attempting to set relative path to URI with authority but no path.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller retains ownership of the string parameter.
 int uri_path_set(struct uri *, const char *) PUBLIC;
 
 /// Set query component.
 /// @return Zero on success, negative errno otherwise.
 /// @return -EFAULT bad pointer.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller retains ownership of the string parameter.
 int uri_query_set(struct uri *, const char *) PUBLIC;
 
 /// Set fragment component.
 /// @return Zero on success, negative errno otherwise.
 /// @return -EFAULT bad pointer.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller retains ownership of the string parameter.
 int uri_fragment_set(struct uri *, const char *) PUBLIC;
 
 /// Get sequence of characters as a string.
@@ -146,7 +163,9 @@ int uri_fragment_set(struct uri *, const char *) PUBLIC;
 /// @return Zero on success, negative errno otherwise.
 /// @return -EFAULT bad pointer.
 /// @return -ENOMEM out of memory.
+/// @note Memory ownership: Caller must free() the returned pointer.
 int uri_str(const struct uri *, char **) PUBLIC;
 
 /// Destructor.
+/// @note Memory ownership: Takes ownership of the given pointer.
 void uri_delete(struct uri *) PUBLIC;
